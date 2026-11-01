@@ -3,6 +3,7 @@
 Verified in this session:
 
 - `python -m pytest -q`: **12 passed**, including optional SHAP installed.
+- Regression coverage: JSON/YAML numeric config parsing and reusing a saved JSON baseline (scientific-notation learning rates) are tested.
 - Controlled experiment runner: baseline reuse, actual synthetic augmentation training, validation-only summaries, fixed data/seed preservation, rerun protection and error-review gallery verified.
 - `python smoke_test.py`: passed synthetic training, checkpoint reload, stress evaluation, and single-image prediction.
 - Mid-phase epoch-boundary CPU resume produced identical final weights and history to uninterrupted training.

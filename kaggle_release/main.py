@@ -1,7 +1,7 @@
 import argparse
 import json
 from pathlib import Path
-import yaml
+from crossskinnet.config import read_config
 from crossskinnet.data import prepare_splits
 from crossskinnet.engine import train,evaluate,predict
 
@@ -25,7 +25,7 @@ def main():
     p=sub.add_parser('compare');p.add_argument('runs',nargs='+',help='run output folders; compares validation only')
     args=parser.parse_args()
     if args.command in ('prepare','train'):
-        config=yaml.safe_load(Path(args.config).read_text())
+        config=read_config(args.config)
         if args.command=='prepare':
             parts,info=prepare_splits(config)
             print(json.dumps(info,indent=2))

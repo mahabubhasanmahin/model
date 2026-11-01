@@ -12,6 +12,7 @@ import torch
 import yaml
 from PIL import Image
 from crossskinnet.data import digest,json_save,read_csv
+from crossskinnet.config import read_config
 
 ROOT=Path(__file__).resolve().parent
 
@@ -37,7 +38,7 @@ def validate_split(config):
 
 
 def make_plan(base_path,directory,baseline_run=None,backbone=None,model_path=None):
-    base=yaml.safe_load(Path(base_path).read_text())
+    base=read_config(base_path)
     if base['training'].get('augmentation',False) or base['training'].get('loss','weighted_ce')!='weighted_ce':
         raise ValueError('Use the existing augmentation=False, loss=weighted_ce run as base')
     split=validate_split(base)
@@ -115,7 +116,7 @@ def run_plan(plan_path,only=None,resume=False):
     for case in plan['cases']:
         if case['name'] not in selected:
             continue
-        config=yaml.safe_load(Path(case['config_path']).read_text());run=Path(config['run']['output_dir'])
+        config=read_config(case['config_path']);run=Path(config['run']['output_dir'])
         if validate_split(config)['fingerprint']!=plan['split_fingerprint']:
             raise ValueError('Split fingerprint changed')
         print(f"\n=== {case['name']}: {case['description']} ===",flush=True)
@@ -143,7 +144,7 @@ def run_plan(plan_path,only=None,resume=False):
 def summarize(plan_path):
     plan_path=Path(plan_path);plan=json.loads(plan_path.read_text());rows=[];per_class=[]
     for case in plan['cases']:
-        config=yaml.safe_load(Path(case['config_path']).read_text());run=Path(config['run']['output_dir'])
+        config=read_config(case['config_path']);run=Path(config['run']['output_dir'])
         metric_path=run/'val_metrics.json'
         row={'experiment':case['name'],'run':str(run),'status':'pending'}
         if metric_path.exists() and completed(run):

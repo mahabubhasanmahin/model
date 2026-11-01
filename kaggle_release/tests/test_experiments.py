@@ -15,7 +15,8 @@ def test_controlled_suite_and_error_review(tmp_path):
     cfg['training']['phases']=cfg['training']['phases'][:1]
     baseline=train(cfg)
     evaluate(baseline,'val')
-    base=tmp_path/'base.yaml';base.write_text(yaml.safe_dump(cfg))
+    # Regression: saved JSON uses 1e-05, which generic YAML reads as a string.
+    base=baseline.parent/'config.json'
     plan_path=make_plan(base,tmp_path/'suite',baseline.parent,'dinov2','not-downloaded-in-this-test')
     plan=json.loads(plan_path.read_text())
     assert {c['name'] for c in plan['cases']}=={'baseline','augmentation_on','ce_loss','focal_loss','backbone_dinov2'}
@@ -47,3 +48,16 @@ def test_controlled_suite_and_error_review(tmp_path):
     info_path.write_text(json.dumps(info))
     with pytest.raises(ValueError,match='different splits'):
         summarize(plan_path)
+
+
+def test_json_yaml_numeric_config_roundtrip(tmp_path):
+    from crossskinnet.config import read_config
+    original={'training':{'head_lr':1e-5,'backbone_lr':3e-6,'min_delta':.001},'run':{'output_dir':'run'}}
+    for suffix,content in [('.json',json.dumps(original)),('.yaml',yaml.safe_dump(original))]:
+        path=tmp_path/f'config{suffix}';path.write_text(content)
+        loaded=read_config(path)
+        assert loaded==original
+        assert isinstance(loaded['training']['head_lr'],float)
+    wrong=tmp_path/'wrong.json';wrong.write_text('[]')
+    with pytest.raises(ValueError,match='mapping'):
+        read_config(wrong)
