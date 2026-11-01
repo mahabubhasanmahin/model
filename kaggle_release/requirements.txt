@@ -1,0 +1,9 @@
+# Kaggle already includes matched torch/torchvision. Do not independently upgrade them.
+transformers==4.57.6
+pandas>=2.2,<4
+numpy>=1.26
+Pillow>=10
+scikit-learn>=1.4
+PyYAML>=6
+matplotlib>=3.8
+safetensors>=0.4

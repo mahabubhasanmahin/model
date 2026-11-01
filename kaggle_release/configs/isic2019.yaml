@@ -1,0 +1,60 @@
+model:
+  backbone: dinov3  # dinov3 | dinov2 | efficientnet | swin
+  path: /kaggle/input/YOUR-MODEL/dinov3-vitb16
+  mode: gated  # image_only | metadata_only | naive | gated
+  token_dim: 32
+  use_fast: true  # DINOv3 needs a matching torchvision installation
+
+data:
+  image_root: /kaggle/input/YOUR-DATASET/ISIC_2019_Training_Input
+  labels_csv: /kaggle/input/YOUR-DATASET/ISIC_2019_Training_GroundTruth.csv
+  metadata_csv: /kaggle/input/YOUR-DATASET/ISIC_2019_Training_Metadata.csv
+  image_column: image
+  label_columns: [MEL, NV, BCC, AK, BKL, DF, VASC, SCC]
+  label_column: null  # set label_columns: null to use a single disease-name column
+  numeric_features: [age_approx]
+  categorical_features: [sex, anatom_site_general]
+  group_columns: [lesion_id]  # use patient ID too if available
+  missing_group_policy: drop  # explicit exclusion, recorded in split_info.json
+  allow_image_split: false
+  split_column: null  # optional column with train/val/test values
+  split_seed: 42
+  split_dir: /kaggle/working/crossskin_splits/isic2019_lesion_v1
+  verify_images: true
+  check_exact_duplicates: false  # true hashes every included image; near duplicates need separate review
+
+training:
+  device: cuda
+  batch_size: 8
+  num_workers: 2
+  accumulation_steps: 2
+  amp: true
+  seed: 42
+  augmentation: false  # first run without; change only this for the augmentation comparison
+  metadata_dropout: 0.1
+  loss: weighted_ce  # ce | weighted_ce | focal
+  focal_gamma: 2.0
+  weight_decay: 0.01
+  warmup_fraction: 0.05
+  gradient_clip: 1.0
+  patience: 5  # phase-level early stopping; 0 disables
+  min_delta: 0.001
+  phases:
+    - name: head_warmup
+      epochs: 8
+      unfreeze_blocks: 0
+      head_lr: 0.0003
+      backbone_lr: 0.00001
+    - name: last_two
+      epochs: 15
+      unfreeze_blocks: 2
+      head_lr: 0.0001
+      backbone_lr: 0.00001
+    - name: last_four_optional
+      epochs: 0  # set >0 for a separately named experiment
+      unfreeze_blocks: 4
+      head_lr: 0.00003
+      backbone_lr: 0.000003
+
+run:
+  output_dir: /kaggle/working/outputs/crossskin_gated_run1
