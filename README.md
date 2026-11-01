@@ -36,4 +36,4 @@ See the package README for validation, final testing, checkpoint resume, single-
 
 ## Validation and limits
 
-11 synthetic/software tests passed, including CPU resume and local random DINOv3 fast-processor round-trip. See [`VERIFICATION.md`](kaggle_release/VERIFICATION.md). This is not evidence of real-dataset accuracy; no GPU/full ISIC run or 98%/99% accuracy is claimed. Lesion-grouped splits do not establish patient independence without patient IDs. Model weights, datasets and credentials are not included.
+12 synthetic/software tests passed, including CPU resume and local random DINOv3 fast-processor round-trip. See [`VERIFICATION.md`](kaggle_release/VERIFICATION.md). This is not evidence of real-dataset accuracy; no GPU/full ISIC run or 98%/99% accuracy is claimed. Lesion-grouped splits do not establish patient independence without patient IDs. Model weights, datasets and credentials are not included.

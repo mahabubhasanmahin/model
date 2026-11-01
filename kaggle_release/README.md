@@ -138,6 +138,22 @@ python main.py compare outputs/A outputs/B
 
 Comparison refuses different split fingerprints.
 
+## Validation experiment runner
+
+`experiments.py` prepares reproducible configs, runs each experiment in a fresh Python subprocess, reuses a completed compatible baseline, and exports validation-only comparison tables. It never evaluates the test split or changes source labels. Existing incomplete runs require explicit `--resume`. Do not edit generated configs halfway through a suite.
+
+```bash
+python experiments.py plan --base /path/to/baseline_run/config.json --baseline-run /path/to/baseline_run --output-dir /kaggle/working/experiments/checks_v1 --backbone dinov2 --model-path facebook/dinov2-base
+python experiments.py run --plan /kaggle/working/experiments/checks_v1/plan.json --only baseline augmentation_on
+python experiments.py run --plan /kaggle/working/experiments/checks_v1/plan.json --only ce_loss backbone_dinov2
+python experiments.py summary --plan /kaggle/working/experiments/checks_v1/plan.json
+python experiments.py review --run /path/to/baseline_run
+```
+
+The base must use augmentation=False and weighted_ce. Variants change only augmentation, CE/focal loss, or the alternative backbone/checkpoint and its native processor. All retain the same data fingerprint and training seed. Focal is an optional extra case (`--only focal_loss`). The alternative backbone needs a local compatible Hugging Face folder or Internet/model authorization for online loading. Model training is expensive; run cases sequentially and inspect validation rather than launch duplicate runs. `--resume` on the run command resumes any selected incomplete cases from last.pt; completed cases only repeat validation.
+
+Outputs: `validation_comparison.csv` (including delta vs baseline) and `validation_per_class.csv`. Pending cases remain marked pending. `review` writes `validation_errors_review.csv` and a gallery of up to 24 highest-confidence validation errors; it includes metadata/identifiers and should remain private. These errors are manual review candidates, not proof that the provided label is incorrect. The gallery is not a representative dataset sample and does not detect duplicates or audit all data quality. Relabeling or excluding validation examples after seeing predictions changes the evaluation and requires an explicit, independent review protocol.
+
 ## Final evaluation and single-image inference
 
 ```bash

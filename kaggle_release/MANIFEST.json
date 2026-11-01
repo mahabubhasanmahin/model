@@ -1,19 +1,21 @@
 {
   ".gitignore": "df7e54207d15dbf81195b3e88edc172eb49f36c751844e10dc6ccd07de059091",
   "Kaggle_Start.ipynb": "b090ea845f2a9c226bcc0916cd183909e2a15e829e57ffdae50aaf2b1ae548ac",
-  "README.md": "9bd4764e99652ad9e5ca02d7c592578f0b8c091c3b1455fc2e1cb700036663de",
-  "VERIFICATION.md": "cbb6321507f4febbfe21b55ca725197c9a5c55bbe1188c06a2b7718fe82bc637",
+  "README.md": "f99b3cca3213cfc036d12f40ef487f43aa29416cabc9ce9280be4bbcefd9f24f",
+  "VERIFICATION.md": "1bd91e0f3cab7128789440ef47ca9542586fda57f1ff84d5c64fdb5b5081b2c3",
   "configs/isic2019.yaml": "08165a82e2a05ad0230af1fc856bd0e74994d249d2db13cbb20a9ca18eb6f27b",
   "crossskinnet/__init__.py": "950a3310040d6f38251eb01f51e1eab2cf27d67a1ac37e6f8beafb21a5ded16d",
   "crossskinnet/data.py": "168ae47aa78351e42bc51bb730aa21572afe16c492d05a138a4eb8b7eddd9921",
   "crossskinnet/engine.py": "e4485adcc455f1d55d02acfe4c36a6bfb2c33943e34a7ed3106fe46c0208c722",
   "crossskinnet/model.py": "acaab02510d9d18e3a91c1fe6b0b08067347591ebd6bb39ef668847dc95393f5",
   "crossskinnet/xai.py": "f8de618f6ba02de0a84f32ca1dca119bfc9381818adcea1ffb4b53196d8dced9",
+  "experiments.py": "a67cfdcc8d4f00382ed19f870d9ae2a13ca077355530cc6a81c46e64c34bf9bd",
   "main.py": "ad4c983d8b9db8b13562985dead400de29008241b5e3fbc98dc18bab4db8f797",
   "metadata_example.json": "3fc07525964d34b609470d5378c49ecb7464f70960031d6b5ae002c4d095cf59",
   "requirements-dev.txt": "d1f7a9a74d4999930cf88eba1fefc834281a91cbd10efb799ba3f72767e9c5b9",
   "requirements-xai.txt": "bf5ba373fd671551dbf21decf395452b93c24265f6e7b60d22ee14d0180d6c9c",
   "requirements.txt": "d2a26b0535a4dc8935a7da63a363b13c95911bc00e53f64551e5c444689cc1d3",
   "smoke_test.py": "4cc3affd80a6cdd288b68a94e1900102cb3e9c853cc80b95037c85d569be16d7",
+  "tests/test_experiments.py": "4bf1003660412c1e52dcadaec93ac640555ddcea5c11fcd96404454be00f21f0",
   "tests/test_release.py": "0250829c8b36d87acf8111ab4c3c8a04d35b69c3cca834b7c23e523fda6a6ca4"
 }
