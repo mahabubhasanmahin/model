@@ -92,6 +92,12 @@ Image identifiers/paths and configured group IDs are checked for overlap. Corrup
 
 Historical test results already inspected during tuning should be treated as exploratory. A new untouched external/final holdout is preferable for final claims. This package's test split is internal, not the official ISIC challenge evaluation.
 
+## Preparation progress
+
+Run `python -u main.py prepare --config experiment.yaml` for unbuffered status output. Preparation shows progress bars for file scanning, image-path resolution, group-ID linking, image verification, and optional duplicate hashing. File scanning has an unknown total and reports the count; later bars show percentages and ETA. Fold creation is announced by stage because sklearn does not expose per-fold-construction progress. When fixed splits already exist, preparation reuses them and skips image verification, so no image progress bar is expected.
+
+Update a clean Kaggle clone with `git -C /kaggle/working/model pull --ff-only` before using this version. Do not update files while a training/preparation process is still running.
+
 ## Training
 
 ```bash

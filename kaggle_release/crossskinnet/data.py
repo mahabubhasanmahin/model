@@ -8,6 +8,7 @@ import torch
 from PIL import Image, ImageOps
 from sklearn.model_selection import StratifiedGroupKFold, train_test_split
 from torch.utils.data import Dataset, DataLoader
+from tqdm.auto import tqdm
 
 
 def digest(path):
@@ -28,6 +29,7 @@ def read_csv(path):
 
 
 def table_from_config(cfg):
+    print('[prepare] Reading labels and metadata...', flush=True)
     frame=read_csv(cfg['labels_csv'])
     image=cfg['image_column']
     if frame[image].isna().any() or frame[image].duplicated().any():
@@ -59,7 +61,7 @@ def table_from_config(cfg):
     root=Path(cfg['image_root'])
     if not root.is_dir():
         raise FileNotFoundError(root)
-    for p in root.rglob('*'):
+    for p in tqdm(root.rglob('*'),desc='Scanning image files',unit='file',mininterval=1):
         if p.is_file() and p.suffix.lower() in ('.jpg','.jpeg','.png','.bmp','.webp'):
             if p.stem in index:
                 raise ValueError(f'Duplicate image basename {p.stem}; use a narrower image_root')
@@ -71,7 +73,8 @@ def table_from_config(cfg):
         if Path(value).stem not in index:
             raise FileNotFoundError(value)
         return index[Path(value).stem]
-    frame['_path']=frame[image].map(resolve)
+    frame['_path']=[resolve(value) for value in tqdm(frame[image],total=len(frame),
+                                                    desc='Resolving image paths',unit='image',mininterval=1)]
     if frame['_path'].duplicated().any():
         raise ValueError('Duplicate resolved image paths')
     report={'original_images':len(frame),'excluded_missing_group':0,
@@ -100,7 +103,8 @@ def table_from_config(cfg):
             return i
         for name in groups:
             seen={}
-            for i,v in enumerate(frame[name]):
+            for i,v in tqdm(enumerate(frame[name]),total=len(frame),
+                            desc=f'Grouping by {name}',unit='image',mininterval=1):
                 if v in seen:
                     parent[find(i)]=find(seen[v])
                 else:
@@ -115,12 +119,13 @@ def table_from_config(cfg):
         report['independence']='IMAGE LEVEL ONLY: patient/lesion independence unverified'
         print('WARNING:',report['independence'])
     if cfg.get('verify_images',True):
-        for path in frame['_path']:
+        for path in tqdm(frame['_path'],total=len(frame),desc='Verifying images',unit='image',mininterval=1):
             with Image.open(path) as image_file:
                 image_file.verify()
     if cfg.get('check_exact_duplicates',False):
         # Link exact duplicate content even when filenames differ.
-        hashes=frame['_path'].map(digest)
+        hashes=pd.Series([digest(path) for path in tqdm(frame['_path'],total=len(frame),
+                                                        desc='Checking exact duplicates',unit='image',mininterval=1)],index=frame.index)
         if hashes.duplicated().any():
             raise ValueError('Exact duplicate image content detected; resolve duplicates before splitting')
         report['exact_duplicate_check']='passed'
@@ -149,6 +154,7 @@ def assert_splits(parts,cfg):
 def prepare_splits(config):
     cfg=config['data']
     directory=Path(cfg['split_dir'])
+    print('[prepare] Checking CSV fingerprints and saved splits...', flush=True)
     signature={'data':cfg,'labels_sha256':digest(cfg['labels_csv']),
                'metadata_sha256':digest(cfg['metadata_csv']) if cfg.get('metadata_csv') else None}
     fingerprint=hashlib.sha256(json.dumps(signature,sort_keys=True).encode()).hexdigest()
@@ -159,7 +165,7 @@ def prepare_splits(config):
             raise ValueError('split_dir belongs to different data/settings; do not overwrite it')
         parts={s:read_csv(directory/f'{s}.csv') for s in ['train','val','test']}
         assert_splits(parts,cfg)
-        print('Reusing fixed splits:',directory)
+        print('Reusing fixed splits:',directory,flush=True)
         return parts,info
     if directory.exists() and any(directory.iterdir()):
         raise ValueError('Incomplete/nonempty split_dir; inspect it before creating new splits')
@@ -172,9 +178,11 @@ def prepare_splits(config):
         parts={s:frame[frame[split_column]==s].copy() for s in ['train','val','test']}
     elif cfg.get('group_columns'):
         # Label-stratified group folds: approximately 70/10/20 by image count.
+        print('[prepare] Creating grouped test split (5 folds)...',flush=True)
         outer=StratifiedGroupKFold(n_splits=5,shuffle=True,random_state=seed)
         a,b=next(outer.split(frame,frame['_label'],frame['_group']))
         rest,test=frame.iloc[a],frame.iloc[b]
+        print('[prepare] Creating grouped validation split (8 folds)...',flush=True)
         inner=StratifiedGroupKFold(n_splits=8,shuffle=True,random_state=seed)
         a,b=next(inner.split(rest,rest['_label'],rest['_group']))
         parts={'train':rest.iloc[a].copy(),'val':rest.iloc[b].copy(),'test':test.copy()}
@@ -182,6 +190,7 @@ def prepare_splits(config):
         rest,test=train_test_split(frame,test_size=.2,stratify=frame['_label'],random_state=seed)
         train,val=train_test_split(rest,test_size=.125,stratify=rest['_label'],random_state=seed)
         parts={'train':train,'val':val,'test':test}
+    print('[prepare] Checking split independence and saving manifests...',flush=True)
     assert_splits(parts,cfg)
     directory.mkdir(parents=True,exist_ok=True)
     info={'fingerprint':fingerprint,'signature':signature,'audit':report,'splits':{}}
@@ -189,7 +198,8 @@ def prepare_splits(config):
         table.to_csv(directory/f'{name}.csv',index=False)
         info['splits'][name]={'images':len(table),'class_counts':table['_label'].value_counts().to_dict()}
     json_save(marker,info)
-    print(json.dumps(info['audit'],indent=2))
+    print(json.dumps(info['audit'],indent=2),flush=True)
+    print('[prepare] Complete. Fixed split files saved to:',directory,flush=True)
     return parts,info
 
 
