@@ -111,7 +111,7 @@ Separate backbone/head LRs, AdamW, warmup/cosine decay (floor 10% of base LR), m
 
 Loss choices: ce, weighted_ce, focal (inverse-frequency alpha and configurable gamma). Compare separately; no automatic oversampling is applied. Aggressive augmentation and stronger class weighting are not inherently better. Training-only augmentation uses flips/right-angle rotations. Metadata dropout affects training masks only.
 
-Training history logs both validation accuracy and macro-F1. `best.pt` is for evaluation/inference. `last.pt` stores model, optimizer, scheduler, scaler, epoch/phase/patience counters, history, Python/NumPy/torch/CUDA RNG states. Writes are atomic. Resume is at epoch boundaries; minibatch progress is not saved.
+Training and validation show batch progress bars with batch counts, throughput and estimated remaining time. Training bars also show cumulative loss. Updates are throttled to about once per second; no additional model forward pass is performed for the display. Training history logs both validation accuracy and macro-F1. `best.pt` is for evaluation/inference. `last.pt` stores model, optimizer, scheduler, scaler, epoch/phase/patience counters, history, Python/NumPy/torch/CUDA RNG states. Writes are atomic. Resume is at epoch boundaries; minibatch progress is not saved.
 
 ```bash
 python main.py train --config experiment.yaml --resume outputs/run/last.pt

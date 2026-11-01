@@ -10,6 +10,7 @@ import pandas as pd
 import torch
 from sklearn.metrics import accuracy_score,balanced_accuracy_score,f1_score,classification_report,confusion_matrix
 from transformers import AutoImageProcessor
+from tqdm.auto import tqdm
 from .model import CrossSkinNet
 from .data import prepare_splits,fit_schema,loader,json_save,read_csv,encode
 
@@ -65,10 +66,11 @@ def metric_report(truth,predicted,classes):
 
 
 @torch.no_grad()
-def evaluate_batches(model,batches,device,classes,drop=0.,seed=42):
+def evaluate_batches(model,batches,device,classes,drop=0.,seed=42,progress_desc='Evaluating'):
     model.eval(); truths=[]; probs=[]
     rng=torch.Generator().manual_seed(seed)
-    for pixels,values,mask,labels in batches:
+    for pixels,values,mask,labels in tqdm(batches,desc=progress_desc,unit='batch',
+                                         mininterval=1,dynamic_ncols=True):
         mask=mask&(torch.rand(mask.shape,generator=rng)>=drop)
         logits=model(pixels.to(device),values.to(device),mask.to(device))
         probs.extend(logits.softmax(-1).cpu().tolist()); truths.extend(labels.tolist())
@@ -187,7 +189,9 @@ def train(config,resume=None):
                 model.vision.eval()  # frozen BatchNorm/dropout stable; unfrozen weights still receive gradients
             optimizer.zero_grad(set_to_none=True)
             total_loss=0.; total_den=0.;group_den=0.
-            for step,(pixels,values,mask,labels) in enumerate(train_loader):
+            progress=tqdm(train_loader,desc=f"Train epoch {state['global_epoch']+1} ({phase['name']})",
+                          unit='batch',mininterval=1,dynamic_ncols=True)
+            for step,(pixels,values,mask,labels) in enumerate(progress):
                 mask=mask&(torch.rand(mask.shape)>=t.get('metadata_dropout',0.))
                 pixels,values,mask,labels=[v.to(device) for v in (pixels,values,mask,labels)]
                 with torch.autocast(device_type=device.type,enabled=amp):
@@ -196,6 +200,7 @@ def train(config,resume=None):
                 scaler.scale(numerator).backward()
                 den=float(denominator);group_den+=den
                 total_loss+=float(numerator.detach());total_den+=den
+                progress.set_postfix(loss=f'{total_loss/total_den:.4f}',refresh=False)
                 if (step+1)%accumulation==0 or step+1==len(train_loader):
                     scaler.unscale_(optimizer)
                     for parameter in model.parameters():
@@ -206,7 +211,8 @@ def train(config,resume=None):
                     if scaler.get_scale()>=old_scale:
                         scheduler.step()
                     optimizer.zero_grad(set_to_none=True);group_den=0.
-            metrics,_,_=evaluate_batches(model,val_loader,device,schema['classes'])
+            metrics,_,_=evaluate_batches(model,val_loader,device,schema['classes'],
+                                          progress_desc=f"Validation epoch {state['global_epoch']+1}")
             state['global_epoch']+=1
             record={'epoch':state['global_epoch'],'phase':phase['name'],'phase_epoch':epoch+1,
                     'train_loss':total_loss/total_den,'validation':metrics,
@@ -277,7 +283,8 @@ def evaluate(checkpoint,split='val',device='cpu',stress=False,bootstrap=0):
     rates=[0.,.25,.5,.75,1.] if stress else [0.]
     results={}
     for rate in rates:
-        metrics,truth,probs=evaluate_batches(model,batches,device,schema['classes'],rate,42)
+        metrics,truth,probs=evaluate_batches(model,batches,device,schema['classes'],rate,42,
+                                             progress_desc=f'{split}: metadata drop {rate:.0%}')
         results[str(rate)]=metrics
         if rate==0:
             predictions=frame[[config['data']['image_column'],'_label']].copy()
